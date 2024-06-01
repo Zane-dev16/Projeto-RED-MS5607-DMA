@@ -47,7 +47,6 @@ typedef struct ms5607_dev {
 extern uint8_t ms5607_init(struct ms5607_dev * dev);
 extern void ms5607_prep_pressure(struct ms5607_dev * dev, uint8_t * dat);
 extern void ms5607_read_pressure(struct ms5607_dev * dev, uint8_t * dat);
-extern void ms5607_convert(struct ms5607_dev * dev, float * p, float * t);
 
 
 #endif /* MS5607_H_ */

@@ -6,8 +6,11 @@
 extern DMA_HandleTypeDef hdma_i2c1_rx;
 extern DMA_HandleTypeDef hdma_i2c1_tx;
 
+
 #define MS5607_ADDR 0x76 << 1
 volatile uint8_t conversion_complete = 0;
+volatile uint8_t dma_rx_complete = 0;
+volatile uint8_t dma_tx_complete = 0;
 
 void ms5607_dev_init(struct ms5607_dev * dev) {
     dev->addr = MS5607_ADDR; // Set default sensor address
@@ -24,9 +27,10 @@ void ms5607_dma_wait()
 void ms5607_dma_prep_pressure(struct ms5607_dev * dev) {
     uint8_t buf[1] = {0x44};
     HAL_StatusTypeDef status;
-    ms5607_dma_wait();
     status=HAL_I2C_Master_Transmit_DMA(dev->i2c_bus, MS5607_ADDR, buf, 1);
-    ms5607_dma_wait(); // Wait for DMA transfer to complete
+    while (!dma_tx_complete);
+    dma_tx_complete = 0;
+    HAL_Delay(2);
     if (status != HAL_OK) {
         // Handle the error (e.g., log the error, reset the peripheral, etc.)
         printf("HAL_I2C_Master_Transmit_DMA failed with status %d\n", status);
@@ -45,9 +49,8 @@ void ms5607_dma_request_data()
 {
     uint8_t buf[1] = {0x00};  // Command to read ADC result
     HAL_StatusTypeDef status;
-    ms5607_dma_wait();
     status=HAL_I2C_Master_Transmit_DMA(&hi2c1, MS5607_ADDR, buf, 1);
-    ms5607_dma_wait(); // Wait for DMA transfer to complete
+    ms5607_dma_wait(); //
     if (status != HAL_OK) {
         // Handle the error (e.g., log the error, reset the peripheral, etc.)
         printf("HAL_I2C_Master_Transmit_DMA failed with status %d\n", status);
@@ -118,4 +121,22 @@ void ms5607_convert(struct ms5607_dev * dev, float * p, float * t)
 	//printf("MS pressure is %4.2f Pa\n", pressure);
 	//printf("MS temp is %4.2f deg\n", TEMP);
 
+}
+
+void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *hi2c)
+{
+    if (hi2c->Instance == I2C1)
+    {
+    	hi2c->State = HAL_I2C_STATE_READY;
+        dma_rx_complete = 1;
+    }
+}
+
+void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef *hi2c)
+{
+    if (hi2c->Instance == I2C1)
+    {
+    	hi2c->State = HAL_I2C_STATE_READY;
+        dma_tx_complete = 1;
+    }
 }

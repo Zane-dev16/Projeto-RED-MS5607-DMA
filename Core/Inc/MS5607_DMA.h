@@ -6,6 +6,7 @@
 #include "i2c.h"
 #include "MS5607.h"
 
+extern void ms5607_dma_wait();
 extern void ms5607_dma_prep_pressure(struct ms5607_dev * dev);
 extern void ms5607_dma_prep_temp();
 extern void ms5607_dma_request_data();

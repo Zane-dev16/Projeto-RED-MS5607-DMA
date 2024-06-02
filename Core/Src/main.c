@@ -53,7 +53,7 @@
 extern DMA_HandleTypeDef hdma_usart2_tx;
 extern DMA_HandleTypeDef hdma_i2c1_rx;
 extern DMA_HandleTypeDef hdma_i2c1_tx;
-volatile uint8_t dma_transfer_complete = 0;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -148,34 +148,29 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-
 	ms5607_dma_prep_pressure(&ms5607_sensor);
-	HAL_Delay(3); // Wait 3ms as required by the sensor
-
 	// Request and read pressure data
 	ms5607_dma_request_data();
-	HAL_Delay(3); // Wait 3ms as required by the sensor
+	HAL_Delay(1); // Wait 3ms as required by the sensor
 	ms5607_dma_read_pressure(&ms5607_sensor);
-	HAL_Delay(3);
+	HAL_Delay(1);
 	// Prepare for temperature measurement
 	ms5607_dma_prep_temp();
-	HAL_Delay(3); // Wait 3ms as required by the sensor
-
+	HAL_Delay(1);
 	// Request and read temperature data
 	ms5607_dma_request_data();
-	HAL_Delay(3); // Wait 3ms as required by the sensor
+	HAL_Delay(1); // Wait 3ms as required by the sensor
 	ms5607_dma_read_temp(&ms5607_sensor);
-	HAL_Delay(3);
 
 	// Convert raw data to temperature and pressure values
 	ms5607_convert(&ms5607_sensor, &p, &t);
 	sprintf(p_str, "p: %f, t: %f\r\n", p, t);
 
 	  if (hdma_usart2_tx.State == HAL_DMA_STATE_READY)
-		  HAL_DMA_Start_IT(&hdma_usart2_tx, (uint32_t)p_str, (uint32_t)&huart2.Instance->TDR, 35);
+		  HAL_DMA_Start_IT(&hdma_usart2_tx, (uint32_t)p_str, (uint32_t)&huart2.Instance->TDR, 33);
 	  i++;
 	  if (i == 10) {
-		  printf("\n Frequencia: %d\r\n", 10000/(HAL_GetTick() - prev_time));
+		  printf(" Frequencia: %d\r\n", 10000/(HAL_GetTick() - prev_time));
 		  prev_time = HAL_GetTick();
 
 		  i = 0;
@@ -244,24 +239,6 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
   } else {
       __NOP();
   }
-}
-
-void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *hi2c)
-{
-    if (hi2c->Instance == I2C1)
-    {
-    	hi2c->State = HAL_I2C_STATE_READY;
-        dma_transfer_complete = 1;
-    }
-}
-
-void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef *hi2c)
-{
-    if (hi2c->Instance == I2C1)
-    {
-    	hi2c->State = HAL_I2C_STATE_READY;
-        dma_transfer_complete = 1;
-    }
 }
 /* USER CODE END 4 */
 

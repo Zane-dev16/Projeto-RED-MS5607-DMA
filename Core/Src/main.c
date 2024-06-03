@@ -149,19 +149,12 @@ int main(void)
   while (1)
   {
 	ms5607_dma_prep_pressure(&ms5607_sensor);
+	HAL_Delay(2);
 	// Request and read pressure data
 	ms5607_dma_request_data();
 	HAL_Delay(1); // Wait 3ms as required by the sensor
 	ms5607_dma_read_pressure(&ms5607_sensor);
 	HAL_Delay(1);
-	// Prepare for temperature measurement
-	ms5607_dma_prep_temp();
-	HAL_Delay(1);
-	// Request and read temperature data
-	ms5607_dma_request_data();
-	HAL_Delay(1); // Wait 3ms as required by the sensor
-	ms5607_dma_read_temp(&ms5607_sensor);
-
 	// Convert raw data to temperature and pressure values
 	ms5607_convert(&ms5607_sensor, &p, &t);
 	sprintf(p_str, "p: %f, t: %f\r\n", p, t);

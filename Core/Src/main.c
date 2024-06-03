@@ -73,6 +73,7 @@ PUTCHAR_PROTOTYPE {
 	HAL_UART_Transmit(&huart2, (uint8_t*) &ch, 1, HAL_MAX_DELAY);
 	return ch;
 }
+#define MS5607_ADDR 0x76 << 1
 
 void XferCpltCallback(DMA_HandleTypeDef *hdma);
 
@@ -128,6 +129,9 @@ int main(void)
   int prev_time;
   int i = 0;
   int j = 0;
+  uint8_t read_adc[1] = {0x00};
+  uint8_t ms_d2_convert[1] = {0x44};
+  HAL_StatusTypeDef status;
   prev_time = HAL_GetTick();
 
   hdma_usart2_tx.XferCpltCallback=&XferCpltCallback;
@@ -146,21 +150,20 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  while (1)
-  {
-	ms5607_dma_prep_pressure(&ms5607_sensor);
-	// Request and read pressure data
+	ms5607_dma_prep_temp();
+	HAL_Delay(2);
+	// Request and read temperature data
 	ms5607_dma_request_data();
 	HAL_Delay(1); // Wait 3ms as required by the sensor
-	ms5607_dma_read_pressure(&ms5607_sensor);
+	ms5607_dma_read_temp(&ms5607_sensor);
 	HAL_Delay(1);
+  while (1)
+  {
+	HAL_I2C_Master_Transmit_DMA(ms5607_sensor.i2c_bus, MS5607_ADDR, ms_d2_convert, 1);
 
-	// Convert raw data to temperature and pressure values
-	ms5607_convert(&ms5607_sensor, &p, &t);
 	sprintf(p_str, "p: %f, t: %f\r\n", p, t);
-
-	  if (hdma_usart2_tx.State == HAL_DMA_STATE_READY)
-		  HAL_DMA_Start_IT(&hdma_usart2_tx, (uint32_t)p_str, (uint32_t)&huart2.Instance->TDR, 33);
+	  while (hdma_usart2_tx.State != HAL_DMA_STATE_READY);
+	  HAL_DMA_Start_IT(&hdma_usart2_tx, (uint32_t)p_str, (uint32_t)&huart2.Instance->TDR, 33);
 	  i++;
 	  if (i == 10) {
 		  printf(" Frequencia: %d\r\n", 10000/(HAL_GetTick() - prev_time));
@@ -168,6 +171,17 @@ int main(void)
 
 		  i = 0;
 	  }
+
+	while (HAL_DMA_GetState(&hdma_i2c1_tx) != HAL_DMA_STATE_READY);
+	HAL_Delay(2);
+
+    status=HAL_I2C_Master_Transmit_DMA(&hi2c1, MS5607_ADDR, read_adc, 1);
+    while (HAL_DMA_GetState(&hdma_i2c1_tx) != HAL_DMA_STATE_READY);
+	ms5607_dma_read_pressure(&ms5607_sensor);
+	while (HAL_DMA_GetState(&hdma_i2c1_tx) != HAL_DMA_STATE_READY);
+    while (HAL_DMA_GetState(&hdma_i2c1_rx) != HAL_DMA_STATE_READY);
+	HAL_Delay(2);
+	ms5607_convert(&ms5607_sensor, &p, &t);
 
     /* USER CODE END WHILE */
 
@@ -232,6 +246,14 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
   } else {
       __NOP();
   }
+}
+
+void ms5607_dma_request_data()
+{
+    uint8_t read_adc[1] = {0x00};
+    HAL_StatusTypeDef status;
+    status=HAL_I2C_Master_Transmit_DMA(&hi2c1, MS5607_ADDR, read_adc, 1);
+    while (HAL_DMA_GetState(&hdma_i2c1_rx) != HAL_DMA_STATE_READY);
 }
 /* USER CODE END 4 */
 

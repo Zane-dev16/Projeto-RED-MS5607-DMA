@@ -24,19 +24,6 @@ void ms5607_dma_wait()
     while (HAL_DMA_GetState(&hdma_i2c1_rx) != HAL_DMA_STATE_READY);
 }
 
-void ms5607_dma_prep_pressure(struct ms5607_dev * dev) {
-    uint8_t buf[1] = {0x44};
-    HAL_StatusTypeDef status;
-    status=HAL_I2C_Master_Transmit_DMA(dev->i2c_bus, MS5607_ADDR, buf, 1);
-    while (!dma_tx_complete);
-    dma_tx_complete = 0;
-    HAL_Delay(2);
-    if (status != HAL_OK) {
-        // Handle the error (e.g., log the error, reset the peripheral, etc.)
-        printf("HAL_I2C_Master_Transmit_DMA failed with status %d\n", status);
-        return;
-    }
-}
 
 void ms5607_dma_prep_temp()
 {
@@ -45,26 +32,13 @@ void ms5607_dma_prep_temp()
     ms5607_dma_wait(); // Wait for DMA transfer to complete
 }
 
-void ms5607_dma_request_data()
-{
-    uint8_t buf[1] = {0x00};  // Command to read ADC result
-    HAL_StatusTypeDef status;
-    status=HAL_I2C_Master_Transmit_DMA(&hi2c1, MS5607_ADDR, buf, 1);
-    ms5607_dma_wait(); //
-    if (status != HAL_OK) {
-        // Handle the error (e.g., log the error, reset the peripheral, etc.)
-        printf("HAL_I2C_Master_Transmit_DMA failed with status %d\n", status);
-        return;
-    }
-    // Note: This function doesn't receive data, so there's no DMA receive operation
-}
-
 void ms5607_dma_read_pressure(struct ms5607_dev * dev)
 {
     uint8_t buf[3];
-    ms5607_dma_wait();
+	while (HAL_DMA_GetState(&hdma_i2c1_tx) != HAL_DMA_STATE_READY);
+    while (HAL_DMA_GetState(&hdma_i2c1_rx) != HAL_DMA_STATE_READY);
     HAL_I2C_Master_Receive_DMA(&hi2c1, MS5607_ADDR, buf, 3);
-    ms5607_dma_wait(); // Wait for DMA transfer to complete
+    HAL_Delay(3);
     dev->D1 = (uint32_t)(buf[0] << 16) | (uint32_t)(buf[1] << 8) | (uint32_t)buf[2];
 }
 

@@ -28,7 +28,9 @@ void ms5607_dma_prep_pressure(struct ms5607_dev * dev) {
     uint8_t buf[1] = {0x44};
     HAL_StatusTypeDef status;
     status=HAL_I2C_Master_Transmit_DMA(dev->i2c_bus, MS5607_ADDR, buf, 1);
-    ms5607_dma_wait();
+    while (!dma_tx_complete);
+    dma_tx_complete = 0;
+    HAL_Delay(2);
     if (status != HAL_OK) {
         // Handle the error (e.g., log the error, reset the peripheral, etc.)
         printf("HAL_I2C_Master_Transmit_DMA failed with status %d\n", status);

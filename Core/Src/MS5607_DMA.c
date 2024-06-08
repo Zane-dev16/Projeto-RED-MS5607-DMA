@@ -32,16 +32,6 @@ void ms5607_dma_prep_temp()
     ms5607_dma_wait(); // Wait for DMA transfer to complete
 }
 
-void ms5607_dma_read_pressure(struct ms5607_dev * dev)
-{
-    uint8_t buf[3];
-	while (HAL_DMA_GetState(&hdma_i2c1_tx) != HAL_DMA_STATE_READY);
-    while (HAL_DMA_GetState(&hdma_i2c1_rx) != HAL_DMA_STATE_READY);
-    HAL_I2C_Master_Receive_DMA(&hi2c1, MS5607_ADDR, buf, 3);
-    HAL_Delay(3);
-    dev->D1 = (uint32_t)(buf[0] << 16) | (uint32_t)(buf[1] << 8) | (uint32_t)buf[2];
-}
-
 void ms5607_dma_read_temp(struct ms5607_dev * dev)
 {
     uint8_t buf[3];

@@ -27,9 +27,9 @@ void ms5607_dma_wait()
 
 void ms5607_dma_prep_temp()
 {
-    uint8_t buf[1] = {0x54};
-    HAL_I2C_Master_Transmit_DMA(&hi2c1, MS5607_ADDR, buf, 1);
-    ms5607_dma_wait(); // Wait for DMA transfer to complete
+    uint8_t ms_d1_convert[1] = {0x54};
+    HAL_I2C_Master_Transmit_DMA(&hi2c1, MS5607_ADDR, ms_d1_convert, 1);
+	while (HAL_DMA_GetState(&hdma_i2c1_tx) != HAL_DMA_STATE_READY);
 }
 
 void ms5607_dma_read_temp(struct ms5607_dev * dev)

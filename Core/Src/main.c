@@ -126,11 +126,13 @@ int main(void)
   float t;
   int prev_time;
   int i = 0;
-  int j = 0;
   int start_flag = 1;
   uint8_t read_adc[1] = {0x00};
   uint8_t ms_d2_convert[1] = {0x44};
+  uint8_t ms_d1_convert[1] = {0x54};
 
+  uint8_t raw_pressure[3];
+  uint8_t raw_temp[3];
 
   prev_time = HAL_GetTick();
 
@@ -149,16 +151,26 @@ int main(void)
 	if (i == 20 || start_flag == 1) {
 
 		if (start_flag == 0) {
-		  printf(" Frequencia: %d, t: %f \r\n", 20000/(HAL_GetTick() - prev_time), t);
+		  printf(" Frequência: %lu, t: %f \r\n", 20000/(HAL_GetTick() - prev_time), t);
 		  prev_time = HAL_GetTick();
 		}
 
-		ms5607_dma_prep_temp();
+		// preparar temperatura
+	    HAL_I2C_Master_Transmit_DMA(&hi2c1, MS5607_ADDR, ms_d1_convert, 1);
+
+	    // pedir dados
+		while (HAL_DMA_GetState(&hdma_i2c1_tx) != HAL_DMA_STATE_READY);
 		HAL_Delay(2);
-		ms5607_dma_request_data();
-		HAL_Delay(1);
-		ms5607_dma_read_temp(&ms5607_sensor);
-		HAL_Delay(1);
+	    HAL_I2C_Master_Transmit_DMA(&hi2c1, MS5607_ADDR, read_adc, 1);
+
+	    // ler dados
+		while (HAL_DMA_GetState(&hdma_i2c1_tx) != HAL_DMA_STATE_READY);
+		HAL_Delay(0.0000001);
+	    HAL_I2C_Master_Receive_DMA(&hi2c1, MS5607_ADDR, raw_temp, 3);
+
+	    // guardar dados
+		while (HAL_DMA_GetState(&hdma_i2c1_rx) != HAL_DMA_STATE_READY);
+		ms5607_sensor.D2 = (uint32_t)(raw_temp[0] << 16) | (uint32_t)(raw_temp[1] << 8) | (uint32_t)raw_temp[2];
 
 		i = 0;
 		start_flag = 0;
@@ -166,24 +178,19 @@ int main(void)
 	// preparar pressão
 	HAL_I2C_Master_Transmit_DMA(ms5607_sensor.i2c_bus, MS5607_ADDR, ms_d2_convert, 1);
 
+	// printar dados ao terminal
 	sprintf(p_str, "p: %f \r\n", p);
 	while (hdma_usart2_tx.State != HAL_DMA_STATE_READY);
 	HAL_DMA_Start_IT(&hdma_usart2_tx, (uint32_t)p_str, (uint32_t)&huart2.Instance->TDR, 19);
 
-	// escrever dados ao terminal
-
-
-	while (HAL_DMA_GetState(&hdma_i2c1_rx) != HAL_DMA_STATE_READY);
+	// pedir dados
 	while (HAL_DMA_GetState(&hdma_i2c1_tx) != HAL_DMA_STATE_READY);
 	HAL_Delay(2);
-
-	// pedir dados
     HAL_I2C_Master_Transmit_DMA(&hi2c1, MS5607_ADDR, read_adc, 1);
 
     // ler dados
 	while (HAL_DMA_GetState(&hdma_i2c1_tx) != HAL_DMA_STATE_READY);
 	HAL_Delay(0.0000001);
-    uint8_t raw_pressure[3];
     HAL_I2C_Master_Receive_DMA(&hi2c1, MS5607_ADDR, raw_pressure, 3);
 
     // converter pressão

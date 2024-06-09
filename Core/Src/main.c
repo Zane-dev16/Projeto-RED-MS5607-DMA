@@ -127,6 +127,7 @@ int main(void)
   int prev_time;
   int i = 0;
   int j = 0;
+  int start_flag = 1;
   uint8_t read_adc[1] = {0x00};
   uint8_t ms_d2_convert[1] = {0x44};
 
@@ -142,20 +143,15 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  ms5607_dma_prep_temp();
-	HAL_Delay(2);
-	// Request and read temperature data
-	ms5607_dma_request_data();
-	HAL_Delay(1); // Wait 3ms as required by the sensor
-	ms5607_dma_read_temp(&ms5607_sensor);
-	HAL_Delay(1);
   while (1)
   {
 	i++;
-	if (i == 20) {
+	if (i == 20 || start_flag == 1) {
 
-	  printf(" Frequencia: %d, t: %f \r\n", 20000/(HAL_GetTick() - prev_time), t);
-	  prev_time = HAL_GetTick();
+		if (start_flag == 0) {
+		  printf(" Frequencia: %d, t: %f \r\n", 20000/(HAL_GetTick() - prev_time), t);
+		  prev_time = HAL_GetTick();
+		}
 
 		ms5607_dma_prep_temp();
 		HAL_Delay(2);
@@ -165,6 +161,7 @@ int main(void)
 		HAL_Delay(1);
 
 		i = 0;
+		start_flag = 0;
 	}
 	// preparar pressão
 	HAL_I2C_Master_Transmit_DMA(ms5607_sensor.i2c_bus, MS5607_ADDR, ms_d2_convert, 1);
